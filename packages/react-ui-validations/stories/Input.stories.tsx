@@ -40,6 +40,42 @@ class Example1 extends React.Component<{}, Example1State> {
   }
 }
 
+class Example_ extends React.Component {
+  private ref = React.createRef<ValidationContainer>();
+  public state = {
+    value: '',
+  };
+
+  public validateValue(): Nullable<ValidationInfo> {
+    const { value } = this.state;
+    if (value === '') {
+      return { message: <button onClick={console.log} />, type: 'lostfocus' };
+    }
+    return null;
+  }
+
+  public render() {
+    return (
+      <ValidationContainer ref={this.ref}>
+        <div style={{ padding: 10 }}>
+          <ValidationWrapper validationInfo={this.validateValue()}>
+            <Input
+              value={this.state.value}
+              onValueChange={(value) => this.setState({ value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  this.ref.current?.submit();
+                }
+              }}
+            />
+          </ValidationWrapper>
+          <button />
+        </div>
+      </ValidationContainer>
+    );
+  }
+}
+
 interface Example2State {
   value: string;
 }
@@ -404,21 +440,30 @@ interface Example9State {
 }
 
 class Example9 extends React.Component<{}, Example9State> {
+  private ref = React.createRef<ValidationContainer>();
   public state: Example9State = {
     value: '',
   };
 
   public validateValue(): Nullable<ValidationInfo> {
     const { value } = this.state;
-    return !value ? { message: 'Error msg', type: 'lostfocus' } : null;
+    return !value ? { message: 'Error msg', type: 'submit' } : null;
   }
 
   public render() {
     return (
-      <ValidationContainer>
+      <ValidationContainer ref={this.ref}>
         <div style={{ padding: 10 }}>
           <ValidationWrapper validationInfo={this.validateValue()} renderMessage={text('bottom')}>
-            <Input value={this.state.value} onValueChange={(value) => this.setState({ value })} />
+            <Input
+              value={this.state.value}
+              onValueChange={(value) => this.setState({ value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  this.ref.current?.submit();
+                }
+              }}
+            />
           </ValidationWrapper>
         </div>
       </ValidationContainer>
@@ -427,6 +472,9 @@ class Example9 extends React.Component<{}, Example9State> {
 }
 
 storiesOf('Input', module)
+  .add('#0', () => {
+    return <Example_ />;
+  })
   .add('#1', () => {
     return <Example1 />;
   })

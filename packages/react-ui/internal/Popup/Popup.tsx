@@ -22,6 +22,7 @@ import { MobilePopup } from '../MobilePopup';
 import { getRootNode, rootNode, TSetRootNode } from '../../lib/rootNode';
 import { callChildRef } from '../../lib/callChildRef/callChildRef';
 import { isInstanceWithAnchorElement } from '../../lib/InstanceWithAnchorElement';
+import { listen as listenFocusOutside, containsTargetOrRenderContainer } from '../../lib/listenFocusOutside';
 
 import { PopupPin } from './PopupPin';
 import { Offset, PopupHelper, PositionObject, Rect } from './PopupHelper';
@@ -61,6 +62,7 @@ export interface PopupHandlerProps {
   onMouseLeave?: (event: MouseEventType) => void;
   onClick?: (event: MouseEventType) => void;
   onFocus?: (event: FocusEventType) => void;
+  onFocusOutside?: (event: Event) => void;
   onBlur?: (event: FocusEventType) => void;
   onOpen?: () => void;
   onClose?: () => void;
@@ -209,10 +211,17 @@ export class Popup extends React.Component<PopupProps, PopupState> {
   private refForTransition = React.createRef<HTMLDivElement>();
 
   public anchorElement: Nullable<HTMLElement> = null;
+  private focusOutsideListenerToken: {
+    remove: () => void;
+  } | null = null;
 
   public componentDidMount() {
     this.updateLocation();
     this.layoutEventsToken = LayoutEvents.addListener(this.handleLayoutEvent);
+    document.addEventListener(
+      'ontouchstart' in document.documentElement ? 'touchstart' : 'mousedown',
+      this.handleDocumentClick,
+    );
   }
 
   public static getDerivedStateFromProps(props: Readonly<PopupProps>, state: PopupState) {
@@ -259,6 +268,10 @@ export class Popup extends React.Component<PopupProps, PopupState> {
     if (this.state.location && this.props.onClose) {
       this.props.onClose();
     }
+    document.removeEventListener(
+      'ontouchstart' in document.documentElement ? 'touchstart' : 'mousedown',
+      this.handleDocumentClick,
+    );
   }
 
   public render() {
@@ -342,6 +355,7 @@ export class Popup extends React.Component<PopupProps, PopupState> {
       element.addEventListener('click', this.handleClick);
       element.addEventListener('focusin', this.handleFocus as EventListener);
       element.addEventListener('focusout', this.handleBlur as EventListener);
+      this.focusOutsideListenerToken = listenFocusOutside([element], this.listenFocusOutside);
     }
   }
 
@@ -352,8 +366,40 @@ export class Popup extends React.Component<PopupProps, PopupState> {
       element.removeEventListener('click', this.handleClick);
       element.removeEventListener('focusin', this.handleFocus as EventListener);
       element.removeEventListener('focusout', this.handleBlur as EventListener);
+      this.focusOutsideListenerToken?.remove();
     }
   }
+
+  private listenFocusOutside = (event: Event) => {
+    const target = event.target || event.srcElement;
+
+    if (
+      !this.lastPopupElement ||
+      (target instanceof Element && containsTargetOrRenderContainer(target)(this.lastPopupElement))
+    ) {
+      return;
+    }
+
+    this.props.onFocusOutside?.(event);
+  };
+
+  private handleDocumentClick = (event: Event) => {
+    const target = event.target || event.srcElement;
+    const node = this.anchorElement;
+
+    if (!node || (target instanceof Element && containsTargetOrRenderContainer(target)(node))) {
+      return;
+    }
+
+    if (
+      !this.lastPopupElement ||
+      (target instanceof Element && containsTargetOrRenderContainer(target)(this.lastPopupElement))
+    ) {
+      return;
+    }
+
+    this.props.onFocusOutside?.(event);
+  };
 
   private handleMouseEnter = (event: MouseEventType) => {
     if (this.props.onMouseEnter) {

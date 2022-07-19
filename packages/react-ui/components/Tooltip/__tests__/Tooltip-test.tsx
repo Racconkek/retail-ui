@@ -1,7 +1,7 @@
 import { mount, ReactWrapper } from 'enzyme';
 import React from 'react';
 import { findDOMNode } from 'react-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { Button } from '../../Button';
@@ -242,6 +242,21 @@ describe('Tooltip', () => {
       });
 
       withVariousAnchors((renderTooltip) => {
+        it('keeps open after click on content 2', async () => {
+          const { anchor } = renderTooltip({ trigger: 'hover&focus' });
+
+          anchor.focus();
+          await delay(Tooltip.delay);
+          const content = screen.getByTestId(TooltipDataTids.content);
+
+          expect(content).toBeInTheDocument();
+
+          userEvent.click(content);
+          expect(content).toBeInTheDocument();
+        });
+      });
+
+      withVariousAnchors((renderTooltip) => {
         it('closes after click outside', async () => {
           const { anchor } = renderTooltip({ trigger: 'hover&focus' });
 
@@ -257,7 +272,7 @@ describe('Tooltip', () => {
       });
 
       withVariousAnchors((renderTooltip) => {
-        it('closes after blur', async () => {
+        it.skip('closes after blur', async () => {
           const { anchor } = renderTooltip({ trigger: 'hover&focus' });
 
           anchor.focus();
@@ -266,6 +281,25 @@ describe('Tooltip', () => {
           expect(content).toBeInTheDocument();
 
           anchor.blur();
+          expect(content).not.toBeInTheDocument();
+        });
+      });
+
+      withVariousAnchors((renderTooltip) => {
+        it.skip('closes after focusout', async () => {
+          const { anchor } = renderTooltip({ trigger: 'hover&focus' });
+
+          anchor.focus();
+          const content = screen.getByTestId(TooltipDataTids.content);
+
+          expect(content).toBeInTheDocument();
+
+          fireEvent.keyDown(anchor, {
+            key: 'Tab',
+            code: 9,
+            charCode: 9,
+          });
+
           expect(content).not.toBeInTheDocument();
         });
       });

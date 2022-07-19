@@ -193,7 +193,6 @@ export class Tooltip extends React.PureComponent<TooltipProps, TooltipState> imp
   private hoverTimeout: Nullable<number> = null;
   private contentElement: Nullable<HTMLElement> = null;
   private positions: Nullable<PopupPositionsType[]> = null;
-  private clickedOutside = true;
   private setRootNode!: TSetRootNode;
 
   private popupRef = React.createRef<Popup>();
@@ -453,7 +452,7 @@ export class Tooltip extends React.PureComponent<TooltipProps, TooltipState> imp
           },
           popupProps: {
             onFocus: this.handleFocus,
-            onBlur: this.handleBlur,
+            onFocusOutside: this.handleFocusOutside,
             onMouseEnter: this.handleMouseEnter,
             onMouseLeave: this.handleMouseLeave,
             useWrapper,
@@ -513,8 +512,7 @@ export class Tooltip extends React.PureComponent<TooltipProps, TooltipState> imp
   };
 
   private handleClickOutside = (event: Event) => {
-    this.clickedOutside = this.isClickOutsideContent(event) && this.isClickOutsideAnchor(event);
-    if (this.clickedOutside) {
+    if (this.isClickOutsideContent(event) && this.isClickOutsideAnchor(event)) {
       if (this.props.onCloseRequest) {
         this.props.onCloseRequest();
       }
@@ -544,15 +542,18 @@ export class Tooltip extends React.PureComponent<TooltipProps, TooltipState> imp
   };
 
   private handleBlur = () => {
-    if (this.props.trigger === 'hover&focus' && this.clickedOutside) {
-      this.close();
-    }
-
     if (this.props.trigger === 'focus') {
       this.close();
     }
 
-    this.clickedOutside = true;
+    this.setState({ focused: false });
+  };
+
+  private handleFocusOutside = () => {
+    if (this.props.trigger === 'hover&focus') {
+      this.close();
+    }
+
     this.setState({ focused: false });
   };
 
